@@ -1,0 +1,24 @@
+{
+  "name": "dh-metadata-grubber",
+  "version": "0.0.1",
+  "description": "npm-module that grubs selected metadata from DifHub project and compiles it to js module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DifHub/dh-metadata-grubber.git"
+  },
+  "keywords": [
+    "metadata",
+    "json",
+    "difhub"
+  ],
+  "author": "Nikita Kasyanov <me@nikkas.ru> (http://nikkas.ru)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/DifHub/dh-metadata-grubber/issues"
+  },
+  "homepage": "https://github.com/DifHub/dh-metadata-grubber#readme"
+}
