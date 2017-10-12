@@ -4,6 +4,7 @@
   "description": "npm-module that grubs selected metadata from DifHub project and compiles it to js module",
   "main": "index.js",
   "scripts": {
+    "size": "size-limit 10KB index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -20,5 +21,12 @@
   "bugs": {
     "url": "https://github.com/DifHub/dh-metadata-grubber/issues"
   },
-  "homepage": "https://github.com/DifHub/dh-metadata-grubber#readme"
+  "homepage": "https://github.com/DifHub/dh-metadata-grubber#readme",
+  "devDependencies": {
+    "size-limit": "^0.11.6"
+  },
+  "size-limit": {
+    "limit": "10 KB",
+    "path": "index.js"
+  }
 }
