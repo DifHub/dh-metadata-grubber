@@ -23,10 +23,15 @@
   },
   "homepage": "https://github.com/DifHub/dh-metadata-grubber#readme",
   "devDependencies": {
+    "args": "^3.0.7",
+    "babel-cli": "^6.26.0",
     "size-limit": "^0.11.6"
   },
   "size-limit": {
     "limit": "10 KB",
     "path": "index.js"
+  },
+  "dependencies": {
+    "request": "^2.83.0"
   }
 }
