@@ -86,7 +86,7 @@ function scanDirectory (dir) {
         if (objName.indexOf('[v]') > -1)
             continue;
 
-        obj = require('./' + path.join(dir, f));
+        obj = require(path.join(dir, f));
     }
 
     if (dirs.length === 0) {
@@ -124,7 +124,9 @@ function findByPath(path) {
 }
 
 if (cloneRepo()) {
-    var obj = scanDirectory('./.mdtmp/organizations');
+    // path to temp repo
+    var p = path.join(process.cwd(), '.mdtmp/organizations');
+    var obj = scanDirectory(p);
 
     fs.writeFile(
         'metadata.js',
