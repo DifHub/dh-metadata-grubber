@@ -1,5 +1,3 @@
-// 18ef5b4ee19ebac754d111322a9780dc54e3b5fe
-
 var path = require('path');
 var fs = require('fs');
 var childProcess = require('child_process');
