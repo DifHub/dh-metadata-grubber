@@ -131,7 +131,7 @@ if (cloneRepo()) {
     fs.writeFile(
         'metadata.js',
         "var metadata = " + JSON.stringify(obj) + ";" +
-        findByPath.toString() + ";" +
+        findByPath.toString() +
         "module.exports = {metadata: metadata, findByPath: findByPath};"
     );
 }
