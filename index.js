@@ -86,7 +86,7 @@ function scanDirectory (dir) {
         if (objName.indexOf('[v]') > -1)
             continue;
 
-        obj = require(path.join(dir, f));
+        obj[objName] = require(path.join(dir, f));
     }
 
     if (dirs.length === 0) {
