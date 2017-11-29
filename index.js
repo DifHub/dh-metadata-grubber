@@ -4,6 +4,7 @@ var childProcess = require('child_process');
 var args = require('args');
 
 args.option('repo', 'Absolute path to local repository with project metadata', '');
+args.option('targetDir', 'Relative path to directory where resulting js file should be put', '');
 
 var flags = args.parse(process.argv);
 
@@ -127,7 +128,7 @@ if (cloneRepo()) {
     var obj = scanDirectory(p);
 
     fs.writeFile(
-        'metadata.js',
+        path.join((flags.targetDir ? flags.targetDir : ''), 'metadata.js'),
         "var metadata = " + JSON.stringify(obj) + ";" +
         findByPath.toString() +
         "module.exports = {metadata: metadata, findByPath: findByPath};"
