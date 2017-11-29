@@ -15,3 +15,11 @@ This will create `metadata.js` file which exports compiled object tree of metada
 To get access to some object you can just take it as object property (ex. `org.sys.myApp`) or
 by calling exported function `findByPath` which takes path in form `organizations/Org/systems/Sys`
 and returns object.
+
+```
+Options:
+     
+       -h, --help       Output usage information
+       -r, --repo       Absolute path to local repository with project metadata (defaults to "")
+       -t, --targetDir  Relative path to directory where resulting js file should be put (defaults to "")
+```
