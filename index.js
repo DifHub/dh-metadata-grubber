@@ -85,7 +85,7 @@ function scanDirectory (dir) {
         if (objName.indexOf('[v]') > -1)
             continue;
 
-        obj[objName] = require(path.join(dir, f));
+        obj[objName.toLowerCase()] = require(path.join(dir, f));
     }
 
     if (dirs.length === 0) {
@@ -95,7 +95,7 @@ function scanDirectory (dir) {
     for (var i = 0; i < dirs.length; i++) {
         var d = dirs[i];
 
-        obj[d] = scanDirectory(dir + '/' + d);
+        obj[d.toLowerCase()] = scanDirectory(dir + '/' + d);
     }
 
     // console.log(rootObj, typeof rootObj);
@@ -107,7 +107,10 @@ function findByPath(path) {
     if (!path)
         return null;
 
-    let splitPath = path.split('/');
+    // remove versions from path
+    const clearedPath = path.replace(/\/versions\/\d\.\d\.\d/g, '');
+
+    let splitPath = clearedPath.split('/').map(el => el.toLowerCase());
     let res;
 
     while (splitPath.length) {
