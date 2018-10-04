@@ -31,6 +31,7 @@
     "path": "index.js"
   },
   "dependencies": {
-    "args": "^3.0.7"
+    "args": "^3.0.7",
+    "rimraf": "^2.6.2"
   }
 }

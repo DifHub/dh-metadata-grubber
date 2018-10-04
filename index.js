@@ -2,6 +2,7 @@ var path = require('path');
 var fs = require('fs');
 var childProcess = require('child_process');
 var args = require('args');
+var rimraf = require('rimraf');
 
 args.option('repo', 'Absolute path to local repository with project metadata', '');
 args.option('targetDir', 'Relative path to directory where resulting js file should be put', '');
@@ -26,7 +27,8 @@ function cloneRepo () {
 
 function deleteRepo () {
     try {
-        childProcess.execSync('rm -rf ./.mdtmp');
+        //childProcess.execSync('rm -rf ./.mdtmp');
+		rimraf('./.mdtmp');
         return true;
     } catch (err) {
         return false;
