@@ -19,6 +19,7 @@ var metadata = {};
 function cloneRepo () {
     try {
         childProcess.execSync('git clone --local ' + flags.repo + ' .mdtmp');
+		childProcess.execSync('cd .mdtmp && git checkout master && cd ..');
         return true;
     } catch (err) {
         return false;
@@ -28,9 +29,13 @@ function cloneRepo () {
 function deleteRepo () {
     try {
         //childProcess.execSync('rm -rf ./.mdtmp');
-		rimraf('./.mdtmp');
+		rimraf('.mdtmp', (err)=>{
+			if (err)
+				console.log(err);
+		});
         return true;
     } catch (err) {
+		console.log(err);
         return false;
     }
 }
