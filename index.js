@@ -115,7 +115,7 @@ function findByPath(path) {
         return null;
 
     // remove versions from path
-    const clearedPath = path.replace(/\/versions\/\d\.\d\.\d/g, '');
+    const clearedPath = path.replace(/\/versions\/\d\.\d\.\d/g, '').replace(/:/g,"%");
 
     let splitPath = clearedPath.split('/').map(el => el.toLowerCase());
     let res;
