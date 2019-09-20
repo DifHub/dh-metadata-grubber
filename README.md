@@ -27,7 +27,9 @@ Options:
 
 Format of include file:
 Each line of the file is partial path that will be included. For example if the file has two lines:
+
 >/TestOrg/systems/TestSystem/applications/App1
+
 >/TestOrg/systems/System2
 
 Resulting file will contain only objects from App1 and System2 of TestOrg
