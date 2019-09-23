@@ -1,10 +1,11 @@
-import { metadata, findByPath } from './metadata.js';
-import metadata_apdax from './metadata_apdax.js';
-
-export let defaultLocale = 'en-us';
+const { metadata, findByPath } = require('./example_metadata.js');
+const { metadata_apdax } = require('./metadata_apdax.js');
 
 
-export function changeLang(newLocale) {
+const defaultLocale = 'en-us';
+exports.defaultLocale = defaultLocale;
+
+exports.changeLang = function (newLocale) {
   localStorage.locale = newLocale;
 }
 
@@ -13,7 +14,7 @@ export function changeLang(newLocale) {
  * @param {String} str1
  * @param {String} str2
  */
-export function nonCSCompare(str1: string, str2: string): boolean {
+const nonCSCompare = function (str1, str2) {
   if (!str1 && !str2) {
     // This is two empty strings case, we consider it equal
     return true;
@@ -29,6 +30,7 @@ export function nonCSCompare(str1: string, str2: string): boolean {
     return str1.toLowerCase() === str2.toLowerCase();
   }
 }
+exports.nonCSCompare = nonCSCompare;
 
 /**
  * Get value from object by path
@@ -36,7 +38,7 @@ export function nonCSCompare(str1: string, str2: string): boolean {
  * @param path - this is path in format a.b.c[0].d
  * @returns - object found in the location.
  */
-export function deepGet(object, path) {
+exports.deepGet = function (object, path) {
   try {
     const elements = path.charAt(0) === '/' ? path.substring(1).replace(/\[/g,"/").replace(/\]/g,'').split('/')
                                             : path.replace(/\[/g,".").replace(/\]/g,'').split('.');
@@ -54,7 +56,7 @@ export function deepGet(object, path) {
  * @param value - this is value to set
  * @returns - object new state.
  */
-export function deepSet(object, path, value) {
+exports.deepSet = function (object, path, value) {
   try {
     const elements = path.charAt(0) === '/' ? path.substring(1).replace(/\[/g,"/[").replace(/\]/g,'').split('/')
                                             : path.replace(/\[/g,".[").replace(/\]/g,'').split('.');
@@ -94,7 +96,7 @@ export function deepSet(object, path, value) {
  * @param o - this is actual object to copy
  * @returns - complete copy of the object.
  */
-export function deepCopy(o, nonEmpty = false) {
+exports.deepCopy = function (o, nonEmpty = false) {
   var copy = o, k;
   if (o && typeof o === 'object') {
     copy = Object.prototype.toString.call(o) === '[object Array]' ? [] : {};
@@ -113,7 +115,7 @@ export function deepCopy(o, nonEmpty = false) {
  * @param o - object to copy data from
  * @returns - complete merge of base object with source object.
  */
-export function deepMerge(b, o) {
+exports.deepMerge = function (b, o) {
   var copy = {}, k;
   
   // Merge of two arrays complex. For now we add one to another
@@ -171,6 +173,7 @@ export function deepMerge(b, o) {
  * @param {string} localeCode - code of locale w need id for
  * @returns {string} locale code.
  */
+ 
 function localeIdByCode(localeCode)
 {
 	const locales = datasetToObjectArray(metadata_apdax.metadata.apdax.systems.difhub.applications.organization.datasets.locale);
@@ -184,7 +187,7 @@ function localeIdByCode(localeCode)
  * @param {string} path to the object
  * @returns {object} object metadata, or null
  */
-export const getDatasetMetadata = (path) => {
+const getDatasetMetadata = (path) => {
   try 
   {
     if (!path) return null;
@@ -200,13 +203,14 @@ export const getDatasetMetadata = (path) => {
   }
   return null;
 };
+exports.getDatasetMetadata = getDatasetMetadata;
 
 /**
  * Return veiw metadata by path of the view
  * @param {string} path to the object
  * @returns {object} object metadata, or null
  */
-export const getViewMetadata = (path) => {
+exports.getViewMetadata = (path) => {
   try 
   {
     if (!path) return null;
@@ -229,7 +233,7 @@ export const getViewMetadata = (path) => {
  * @param {string} path - this is path in format a.b.c[0].d or /a/b/c[0]/d
  * @returns {object} object - metadata for field of the dataset or null 
  */
-export const getFieldMetadata = (dataset, path) => {
+exports.getFieldMetadata = (dataset, path) => {
   try 
   {
     if (!dataset || !path || dataset.object.type.toLowerCase() !== 'dataset') return null;
@@ -265,7 +269,7 @@ export const getFieldMetadata = (dataset, path) => {
  * @param {string} locale - locale in which return element data. When not specified use view default.
  * @returns {object} object - metadata for element of the view
  */
-export const getElementMetadata = (view, element, locale) => {
+exports.getElementMetadata = (view, element, locale) => {
   try 
   {
     if (!view || !element || view.object.type.toLowerCase() !== 'view') return null;
@@ -298,7 +302,7 @@ export const getElementMetadata = (view, element, locale) => {
     }
   }
   catch (e) {
-    console.warn("Error in getElementMetadata: " + element + 'for locale:' + locale, view);
+    console.warn("Error in getElementMetadata: " + element + 'for locale:' + locale, view, e);
   }
   return null;
 };
@@ -308,7 +312,7 @@ export const getElementMetadata = (view, element, locale) => {
  * @param {object} element - metadata for element
  * @returns {string} label text
  */
-export const getElementLabel = (element) => {
+exports.getElementLabel = (element) => {
   return !element || !element.text ? '' : element.text;
 };
 
@@ -318,7 +322,7 @@ export const getElementLabel = (element) => {
  * @param {string} name of the property
  * @returns {string} property value
  */
-export const getElementProperty = (element, name) => {
+exports.getElementProperty = (element, name) => {
   if (!element || !element.properties)
     return '';
 
@@ -337,7 +341,7 @@ export const getElementProperty = (element, name) => {
  * @param {string} usage - return value by unique usage without translations
  * @returns {array} array of records
  */
-export const getDatasetData = (dataset, locale, usage) => {
+exports.getDatasetData = (dataset, locale, usage) => {
   if (!dataset) return [];
   if (!locale) {
     locale = localStorage.locale || defaultLocale;  
@@ -380,33 +384,13 @@ export const getDatasetData = (dataset, locale, usage) => {
  * @param {string} locale - locale in which to return options if translation exist.
  * @returns {array} array of enumerator options
  */
-export const getEnumOptions = (field, locale) => {
+exports.getEnumOptions = (field, locale) => {
   if (!field || !nonCSCompare(field.type,'Enum') || !field.reference)  return [];
 
   const dataset = getDatasetMetadata(field.reference);
   if (!dataset) return [];
     
   return getDatasetData(dataset, locale, true);
-};
-
-export const getLabelFromView = (application, view, element, defaultValue = "NO_DATA", locale = "en-us") => {
-  try 
-  {
-	  const definitions = metadata["infort technologies"].systems["client"].applications[application].views[view.toLowerCase()].definitions;
-	  let definition = null;
-	  definitions.map(def => {
-		  if (def.locale === locale || locale === localeIdByCode(def.locale))
-				definition = def;
-	  });
-	  const elements = definition.elements;
-	  const label = elements.reduce((p, c) => c.identity.name === element ? c : p, null).text;
-	  if (label)
-		return label;
-  }
-  catch (e) {
-	console.warn("Error in getLabelFromView (", application, view, element, defaultValue, locale, ")", e);
-  }
-  return defaultValue;
 };
 
 
