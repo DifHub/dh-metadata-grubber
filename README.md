@@ -22,4 +22,14 @@ Options:
        -h, --help       Output usage information
        -r, --repo       Absolute path to local repository with project metadata (defaults to "")
        -t, --targetDir  Relative path to directory where resulting js file should be put (defaults to "")
+	   -i, --include	Relative path to file describing subset of metadata to be included in result (optional) (defaults to "")
 ```
+
+Format of include file:
+Each line of the file is partial path that will be included. For example if the file has two lines:
+
+>/TestOrg/systems/TestSystem/applications/App1
+
+>/TestOrg/systems/System2
+
+Resulting file will contain only objects from App1 and System2 of TestOrg

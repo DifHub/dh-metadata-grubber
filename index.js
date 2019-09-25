@@ -6,6 +6,7 @@ var rimraf = require('rimraf');
 
 args.option('repo', 'Absolute path to local repository with project metadata', '');
 args.option('targetDir', 'Relative path to directory where resulting js file should be put', '');
+args.option('include', 'Relative path to file describing subset of metadata to be included in result (optional)', '');
 
 var flags = args.parse(process.argv);
 
@@ -13,6 +14,7 @@ if (!flags.repo) {
     throw "Provide path to local metadata repository";
 }
 
+var metadataPathFilter = false;
 
 var metadata = {};
 
@@ -73,7 +75,7 @@ function getFullUri(obj) {
  * @param {string} dir
  * @returns {{}}
  */
-function scanDirectory (dir) {
+function scanDirectory (dir, metapath) {
     // console.log(dir);
 
     var dirs = getDirectories(dir).filter(function (dirName) {
@@ -91,6 +93,22 @@ function scanDirectory (dir) {
 
         if (objName.indexOf('[v]') > -1)
             continue;
+		
+		if (metadataPathFilter && metadataPathFilter.length > 0)
+		{
+			//console.log("Looking for ", (metapath + '/' + objName).toLowerCase(), " in ", metadataPathFilter);
+			var found = false;
+			for (var fi = 0; fi < metadataPathFilter.length; fi++)
+			{
+				if ((metapath + '/' + objName).toLowerCase().indexOf(metadataPathFilter[fi].toLowerCase()) !== -1)
+				{
+					found = true;
+					break;
+				}
+			}
+			if (!found)
+				continue;
+		}
 
         obj[objName.toLowerCase()] = require(path.join(dir, f));
     }
@@ -102,7 +120,7 @@ function scanDirectory (dir) {
     for (var i = 0; i < dirs.length; i++) {
         var d = dirs[i];
 
-        obj[d.toLowerCase()] = scanDirectory(dir + '/' + d);
+        obj[d.toLowerCase()] = scanDirectory(dir + '/' + d, metapath + '/' + d);
     }
 
     // console.log(rootObj, typeof rootObj);
@@ -135,13 +153,25 @@ function findByPath(path) {
 if (cloneRepo()) {
     // path to temp repo
     var p = path.join(process.cwd(), '.mdtmp/organizations');
-    var obj = scanDirectory(p);
 
+	if (flags.include)
+	{
+		var include_str = fs.readFileSync(flags.include, "utf-8");
+		metadataPathFilter = include_str.split("\n").map(s => s.trim());
+	}
+
+    var obj = scanDirectory(p, '');
+	
+	var outputFilename = path.join((flags.targetDir ? flags.targetDir : ''), 'metadata.js');
+	
     fs.writeFile(
-        path.join((flags.targetDir ? flags.targetDir : ''), 'metadata.js'),
+        outputFilename,
         "var metadata = " + JSON.stringify(obj) + ";" +
         findByPath.toString() +
-        "module.exports = {metadata: metadata, findByPath: findByPath};"
+        "module.exports = {metadata: metadata, findByPath: findByPath};",
+		() => {
+			console.log("Metadata saved to", outputFilename);
+		}
     );
 }
 
