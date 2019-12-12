@@ -7,6 +7,7 @@ var rimraf = require('rimraf');
 args.option('repo', 'Absolute path to local repository with project metadata', '');
 args.option('targetDir', 'Relative path to directory where resulting js file should be put', '');
 args.option('include', 'Relative path to file describing subset of metadata to be included in result (optional)', '');
+args.option('pretty', 'Pretty-print output json (bigger file but human readable)', false);
 
 var flags = args.parse(process.argv);
 
@@ -64,7 +65,7 @@ function getFullUri(obj) {
     //console.log('parent',obj.object.parent.name,'parts',parts,'res=',parentUri);
 
     if (!obj.object.type) {
-        console.log(obj.object);
+        //console.log(obj.object);
     }
 
     return obj.object.parent.name + '/' + obj.object.type + 's/' + obj.identity.name;
@@ -111,6 +112,7 @@ function scanDirectory (dir, metapath) {
 		}
 
         obj[objName.toLowerCase()] = require(path.join(dir, f));
+		obj[objName.toLowerCase()]._path = getFullUri(obj[objName.toLowerCase()]);
     }
 
     if (dirs.length === 0) {
@@ -166,7 +168,7 @@ if (cloneRepo()) {
 	
     fs.writeFile(
         outputFilename,
-        "var metadata = " + JSON.stringify(obj) + ";" +
+        "var metadata = " + (flags.pretty !== false ? JSON.stringify(obj, null, 2) :JSON.stringify(obj)) + ";" +
         findByPath.toString() +
         "module.exports = {metadata: metadata, findByPath: findByPath};",
 		() => {
