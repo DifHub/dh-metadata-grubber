@@ -8,11 +8,15 @@ args.option('repo', 'Absolute path to local repository with project metadata', '
 args.option('targetDir', 'Relative path to directory where resulting js file should be put', '');
 args.option('include', 'Relative path to file describing subset of metadata to be included in result (optional)', '');
 args.option('pretty', 'Pretty-print output json (bigger file but human readable)', false);
+args.option('json', 'Generate json files instead of metadata.js', false);
 
 var flags = args.parse(process.argv);
 
 if (!flags.repo) {
     throw "Provide path to local metadata repository";
+}
+if (flags.json && flags.repo == flags.targetDir) {
+	throw "Target directory should be different from source directory";
 }
 
 var metadataPathFilter = false;
@@ -113,6 +117,15 @@ function scanDirectory (dir, metapath) {
 
         obj[objName.toLowerCase()] = require(path.join(dir, f));
 		obj[objName.toLowerCase()]._path = getFullUri(obj[objName.toLowerCase()]);
+		
+		if (flags.json)
+		{
+			const filePath = path.join((flags.targetDir ? flags.targetDir : ''), obj[objName.toLowerCase()]._path) + '.json';
+			fs.mkdirSync(path.dirname(filePath), { recursive: true });
+			fs.writeFile(filePath, (flags.pretty !== false ? JSON.stringify(obj[objName.toLowerCase()], null, 2) :JSON.stringify(obj[objName.toLowerCase()])), () => {
+				
+			});
+		}
     }
 
     if (dirs.length === 0) {
@@ -166,15 +179,16 @@ if (cloneRepo()) {
 	
 	var outputFilename = path.join((flags.targetDir ? flags.targetDir : ''), 'metadata.js');
 	
-    fs.writeFile(
-        outputFilename,
-        "var metadata = " + (flags.pretty !== false ? JSON.stringify(obj, null, 2) :JSON.stringify(obj)) + ";" +
-        findByPath.toString() +
-        "module.exports = {metadata: metadata, findByPath: findByPath};",
-		() => {
-			console.log("Metadata saved to", outputFilename);
-		}
-    );
+	if (!flags.json)
+		fs.writeFile(
+			outputFilename,
+			"var metadata = " + (flags.pretty !== false ? JSON.stringify(obj, null, 2) :JSON.stringify(obj)) + ";" +
+			findByPath.toString() +
+			"module.exports = {metadata: metadata, findByPath: findByPath};",
+			() => {
+				console.log("Metadata saved to", outputFilename);
+			}
+		);
 }
 
 deleteRepo();
