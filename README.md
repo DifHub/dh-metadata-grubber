@@ -23,6 +23,8 @@ Options:
        -r, --repo       Absolute path to local repository with project metadata (defaults to "")
        -t, --targetDir  Relative path to directory where resulting js file should be put (defaults to "")
 	   -i, --include	Relative path to file describing subset of metadata to be included in result (optional) (defaults to "")
+	   -p, --pretty		Pretty-print output file (by default it is minified)
+	   -j, --json		Produce json files in target directory instead ot metadata.js file (defaults to false)
 ```
 
 Format of include file:
