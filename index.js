@@ -165,6 +165,26 @@ function findByPath(path) {
     return res;
 }
 
+const metadata_apdax = require('./metadata_apdax.js').metadata;
+const metadataApi = require('./metadataApi.js');
+
+console.log("metadata_apdax", metadata_apdax);
+console.log("metadataApi", metadataApi);
+
+let metadataApiString = "";
+//
+let exportsString = "module.exports = {metadata: metadata, findByPath: findByPath, metadata_apdax:metadata_apdax";
+for (let item in metadataApi)
+{
+	console.log("item", item, metadataApi[item]);
+	if (typeof(metadataApi[item]) === 'function')
+		metadataApiString += "var " + item + " = " + (metadataApi[item].toString()) + "; ";
+	else
+		metadataApiString += "var " + item + " = " + JSON.stringify(metadataApi[item]) + "; ";
+	exportsString += ", " + item + ":" + item;
+}
+exportsString += "}; ";
+
 if (cloneRepo()) {
     // path to temp repo
     var p = path.join(process.cwd(), '.mdtmp/organizations');
@@ -182,9 +202,11 @@ if (cloneRepo()) {
 	if (!flags.json)
 		fs.writeFile(
 			outputFilename,
+			"var metadata_apdax = " + JSON.stringify(metadata_apdax, null, 2) + ";" + 
 			"var metadata = " + (flags.pretty !== false ? JSON.stringify(obj, null, 2) :JSON.stringify(obj)) + ";" +
 			findByPath.toString() +
-			"module.exports = {metadata: metadata, findByPath: findByPath};",
+			metadataApiString + 
+			exportsString,		//"module.exports = {metadata: metadata, findByPath: findByPath};",
 			() => {
 				console.log("Metadata saved to", outputFilename);
 			}
