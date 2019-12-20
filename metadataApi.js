@@ -1,12 +1,14 @@
-const { metadata, findByPath } = require('./example_metadata.js');
+//const { metadata, findByPath } = require('./example_metadata.js');
 const { metadata_apdax } = require('./metadata_apdax.js');
+
+
 
 
 const defaultLocale = 'en-us';
 exports.defaultLocale = defaultLocale;
 
 exports.changeLang = function (newLocale) {
-  localStorage.locale = newLocale;
+  window.localStorage.locale = newLocale;
 }
 
 /**
@@ -167,20 +169,45 @@ exports.deepMerge = function (b, o) {
   return copy;
 }
 
+exports.datasetToObjectArray = (ds) => {
+
+  let sorted = ds.data.records.slice();
+  sorted.sort((a,b)=>a.index > b.index ? 1 : (a.index < b.index ? -1 : 0));
+
+  //console.log("datasetToObjectArray s", sorted);
+
+  let ret = sorted.map( row => {
+
+    let obj = {};
+
+//    console.log("datasetToObjectArray r", row);
+
+    ds.structure.fields.map((field, index) => {
+      obj[field.identity.name] = row.values[index];
+    });
+
+    return obj;
+
+  });
+  //console.log("datasetToObjectArray", ds, ret);
+
+  return ret;
+
+};
 
 /**
  * Find locale id by locale code. Use enumerator of locales from organization.
  * @param {string} localeCode - code of locale w need id for
  * @returns {string} locale code.
  */
- 
-function localeIdByCode(localeCode)
+ //*
+exports.localeIdByCode = (localeCode) => 
 {
 	const locales = datasetToObjectArray(metadata_apdax.metadata.apdax.systems.difhub.applications.organization.datasets.locale);
 	let ret = locales.reduce((found, cur) => cur["Locale Code"] === localeCode ? cur["Locale id"] : found, false);
 	return ret;
 }
-
+// */
 
 /**
  * Return Dataset metadata by path of the dataset
@@ -276,7 +303,7 @@ exports.getElementMetadata = (view, element, locale) => {
 
     // Base locale of the view and locale for requested element 
     let view_locale = (view.locale) ? view.locale : defaultLocale; 
-    let data_locale = (locale) ? locale : localStorage.locale || defaultLocale; 
+    let data_locale = (locale) ? locale : window.localStorage.locale || defaultLocale; 
 
     // Definision of requested locale and base definision
     let data_definision = view.definitions.find(def => (def.locale === data_locale || data_locale === localeIdByCode(def.locale)));
@@ -344,7 +371,7 @@ exports.getElementProperty = (element, name) => {
 exports.getDatasetData = (dataset, locale, usage) => {
   if (!dataset) return [];
   if (!locale) {
-    locale = localStorage.locale || defaultLocale;  
+    locale = typeof(window) !== "undefined" && window.localStorage && window.localStorage.locale ? window.localStorage.locale : defaultLocale;  
   }
 
   let sorted = dataset.data.records.slice();
