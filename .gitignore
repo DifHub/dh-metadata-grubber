@@ -61,3 +61,6 @@ typings/
 
 # Metadata and included metadata list
 metadata.js
+
+resources
+process_one_file.js
