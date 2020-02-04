@@ -104,7 +104,12 @@ function getVersionStatus(version) {
   // SEfalt status is draft
   var status = 'draft';
   if (!version || !version.object || !version.object.history || !version.object.history.completions)
+  {
+  //console.log("getVersionStatus:draft for ",JSON.stringify(version));
+  if(version&&version.object&&version.object.history)
+    //console.log("getVersionStatus:draft for ",version.identity.name,JSON.stringify(version.object.history));
     return status;
+  }
 
   var completions = version.object.history.completions;
 
@@ -114,6 +119,7 @@ function getVersionStatus(version) {
       status = 'approved';
     else if (completions.reduce((p, c, i) => nonCSCompare(c.status, "Finalized") ? true : p, false))
       status = 'finalized';
+    //console.log("getVersionStatus:draft for ",completions,status);
   }
   return status;
 }
@@ -182,12 +188,51 @@ function scanDirectory (dir, metapath) {
 		
 		// object status
 		if (versionedObjectTypes.indexOf(type) !== -1 || (obj[objName.toLowerCase()].object && obj[objName.toLowerCase()].object.history && obj[objName.toLowerCase()].object.history.completions))
-			obj[objName.toLowerCase()]._status = getVersionStatus(obj);
+			obj[objName.toLowerCase()]._status = getVersionStatus(obj[objName.toLowerCase()]);
 		
 		// paths of datasets in publication
 		if (type == "publications")
 		{
-			
+			if (obj[objName.toLowerCase()].datasets)
+			{
+			var appPath = obj[objName.toLowerCase()]._path;
+			appPath = appPath.substr(0, appPath.lastIndexOf('/'));
+			appPath = appPath.substr(0, appPath.lastIndexOf('/'));
+			obj[objName.toLowerCase()].datasets.map(dataset => {
+				dataset._path = appPath + '/datasets/' + dataset.identity.name;
+			});
+			}
+			if (obj[objName.toLowerCase()].interfaces)
+			{
+			var appPath = obj[objName.toLowerCase()]._path;
+			appPath = appPath.substr(0, appPath.lastIndexOf('/'));
+			appPath = appPath.substr(0, appPath.lastIndexOf('/'));
+			obj[objName.toLowerCase()].interfaces.map(dataset => {
+				dataset._path = appPath + '/interfaces/' + dataset.identity.name;
+			});
+			}
+		}
+		
+		if (type == "subscriptions")
+		{
+			if (obj[objName.toLowerCase()].datasets)
+			{
+			var appPath = obj[objName.toLowerCase()].publication.identity.name;
+			appPath = appPath.substr(0, appPath.lastIndexOf('/'));
+			appPath = appPath.substr(0, appPath.lastIndexOf('/'));
+			obj[objName.toLowerCase()].datasets.map(dataset => {
+				dataset._path = appPath + '/datasets/' + dataset.identity.name;
+			});
+			}
+			if (obj[objName.toLowerCase()].interfaces)
+			{
+			var appPath = obj[objName.toLowerCase()].publication.identity.name;
+			appPath = appPath.substr(0, appPath.lastIndexOf('/'));
+			appPath = appPath.substr(0, appPath.lastIndexOf('/'));
+			obj[objName.toLowerCase()].interfaces.map(dataset => {
+				dataset._path = appPath + '/interfaces/' + dataset.identity.name;
+			});
+			}
 		}
 		
 		// Dataset fields, layout details are not embedded in Pipeline JSON
