@@ -32,6 +32,8 @@ var metadataPathFilter = false;
 var metadata = {};
 
 function cloneRepo () {
+	return true;
+	
     try {
         childProcess.execSync('git clone --local ' + flags.repo + ' .mdtmp');
 		childProcess.execSync('cd .mdtmp && git checkout master && cd ..');
@@ -124,6 +126,20 @@ function getVersionStatus(version) {
   return status;
 }
 
+function refToFileName(ref) { 
+//const clearedPath = path.replace(/\/versions\/\d\.\d\.\d/g, '').replace(/:/g,"%");
+	var version = "";
+	if (ref.indexOf('/versions/') != -1)
+	{
+		var match = ref.match(/\/versions\/(\d+\.\d+\.\d+)/);
+		console.log("match", match, ref);
+		version = "-" + match[1];
+	}
+	var ret = ref.replace(/\/versions\/\d+\.\d+\.\d+/g, '').replace(/:/g,"%");
+	ret = ret + version + ".json";
+	console.log("refToFileName", ref, ret);
+	return ret;
+}
 
 /**
  * Recursively goes through md project and imports JSON objects
@@ -167,7 +183,7 @@ function scanDirectory (dir, metapath) {
 				continue;
 		}
 
-		console.log("metapath", metapath + '/' + objName);
+//		console.log("metapath", metapath + '/' + objName);
 		if (flags.servicetoken && metapath.indexOf('/organizations') !== -1) {
 			console.log("will fetch ", 'https://metaserviceprod.azurewebsites.net/api' + metapath + '/' + objName);
 			try {
@@ -239,7 +255,37 @@ function scanDirectory (dir, metapath) {
 		
 		if (type == "pipelines")
 		{
-			
+			console.log("pipeline", obj[objName.toLowerCase()]._path);
+			console.log(obj[objName.toLowerCase()]);
+			if (obj[objName.toLowerCase()].activities)
+			{
+				obj[objName.toLowerCase()].activities.map(activity => {
+					console.log("activity", activity);
+					if (activity.inputs) {
+						activity.inputs.map(input => {
+							if (input.inputMode == "Dataset")
+							{
+								var ref = input.component.reference;
+								var fileName = refToFileName(ref);
+								console.log("load from", path.join((flags.repo ? flags.repo : ''), fileName));
+								var dataset = require(path.join((flags.repo ? flags.repo : ''), fileName));
+								input._dataset = dataset;
+							}
+						});
+					}
+					if (activity.outputs) {
+						activity.outputs.map(output => {
+							if (output.outputMode == "Dataset")
+							{
+								var ref = output.component.reference;
+								var fileName = refToFileName(ref);
+								var dataset = require(path.join((flags.repo ? flags.repo : ''), fileName));
+								output._dataset = dataset;
+							}
+						});
+					}
+				});
+			}
 		}
 		
 		
@@ -252,10 +298,10 @@ function scanDirectory (dir, metapath) {
 					def.elements.map(element => {
 						if (element.image)
 						{
-							console.log("Found external resource: " + element.image + " in object " + obj[objName.toLowerCase()]._path);
 							var imageUrl = element.image.replace(/[^A-Za-z_0-9-]+/g,'_') + '.png';
 							if (!fs.existsSync(path.join((flags.targetDir ? flags.targetDir : ''), 'resources', imageUrl)))
 							{
+								console.log("Found external resource: " + element.image + " in object " + obj[objName.toLowerCase()]._path);
 								var imageData = request('GET', element.image.replace('https://bias-metadata-service.difhub.com','https://apdax-metadata-service-dev.azurewebsites.net')).getBody();
 								//fs.writeFileSync(path.join((flags.targetDir ? flags.targetDir : ''), obj[objName.toLowerCase()]._path) + '__' + element.identity.name + '.png');
 								//var imageUrl = element.image.replace('http://','').replace('https://','').replace('/','_').replace('\\','_').replace('?','_').replace('=','_');
@@ -300,7 +346,7 @@ function findByPath(path) {
         return null;
 
     // remove versions from path
-    const clearedPath = path.replace(/\/versions\/\d\.\d\.\d/g, '').replace(/:/g,"%");
+    const clearedPath = path.replace(/\/versions\/\d+\.\d+\.\d+/g, '').replace(/:/g,"%");
 
     let splitPath = clearedPath.split('/').map(el => el.toLowerCase());
     let res;
