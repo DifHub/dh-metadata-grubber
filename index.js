@@ -14,6 +14,7 @@ args.option('includeOrg', 'Organization to be included in result (optional)', ''
 args.option('pretty', 'Pretty-print output json (bigger file but human readable)', false);
 args.option('json', 'Generate json files instead of metadata.js', false);
 args.option('servicetoken', 'Get metadata from backend service (not git) using specified access token', '');
+args.option('skipresources', 'Skip downloading of resources from views', false);
 
 var flags = args.parse(process.argv);
 
@@ -32,8 +33,7 @@ var metadataPathFilter = false;
 var metadata = {};
 
 function cloneRepo () {
-	return true;
-	
+
     try {
         childProcess.execSync('git clone --local ' + flags.repo + ' .mdtmp');
 		childProcess.execSync('cd .mdtmp && git checkout master && cd ..');
@@ -200,30 +200,36 @@ function scanDirectory (dir, metapath) {
 		} else {
 			obj[objName.toLowerCase()] = require(path.join(dir, f));
 		}
-		obj[objName.toLowerCase()]._path = getFullUri(obj[objName.toLowerCase()]);
+		let object = obj[objName.toLowerCase()];
+		object._path = getFullUri(object);
+		console.log("next metadata item: ", object._path);
 		
 		// object status
-		if (versionedObjectTypes.indexOf(type) !== -1 || (obj[objName.toLowerCase()].object && obj[objName.toLowerCase()].object.history && obj[objName.toLowerCase()].object.history.completions))
-			obj[objName.toLowerCase()]._status = getVersionStatus(obj[objName.toLowerCase()]);
+		if (versionedObjectTypes.indexOf(type) !== -1 || (object.object && object.object.history && object.object.history.completions))
+		{
+			object._status = getVersionStatus(object);
+			console.log("found versioned object, status=", object._status);
+		}
 		
 		// paths of datasets in publication
 		if (type == "publications")
 		{
-			if (obj[objName.toLowerCase()].datasets)
+			console.log("found publication", object.datasets, object.interfaces);
+			if (object.datasets)
 			{
-			var appPath = obj[objName.toLowerCase()]._path;
+			var appPath = object._path;
 			appPath = appPath.substr(0, appPath.lastIndexOf('/'));
 			appPath = appPath.substr(0, appPath.lastIndexOf('/'));
-			obj[objName.toLowerCase()].datasets.map(dataset => {
+			object.datasets.map(dataset => {
 				dataset._path = appPath + '/datasets/' + dataset.identity.name;
 			});
 			}
-			if (obj[objName.toLowerCase()].interfaces)
+			if (object.interfaces)
 			{
-			var appPath = obj[objName.toLowerCase()]._path;
+			var appPath = object._path;
 			appPath = appPath.substr(0, appPath.lastIndexOf('/'));
 			appPath = appPath.substr(0, appPath.lastIndexOf('/'));
-			obj[objName.toLowerCase()].interfaces.map(dataset => {
+			object.interfaces.map(dataset => {
 				dataset._path = appPath + '/interfaces/' + dataset.identity.name;
 			});
 			}
@@ -231,21 +237,22 @@ function scanDirectory (dir, metapath) {
 		
 		if (type == "subscriptions")
 		{
-			if (obj[objName.toLowerCase()].datasets)
+			console.log("found subscription", object.datasets, object.interfaces);
+			if (object.datasets)
 			{
-			var appPath = obj[objName.toLowerCase()].publication.identity.name;
+			var appPath = object.publication.identity.name;
 			appPath = appPath.substr(0, appPath.lastIndexOf('/'));
 			appPath = appPath.substr(0, appPath.lastIndexOf('/'));
-			obj[objName.toLowerCase()].datasets.map(dataset => {
+			object.datasets.map(dataset => {
 				dataset._path = appPath + '/datasets/' + dataset.identity.name;
 			});
 			}
-			if (obj[objName.toLowerCase()].interfaces)
+			if (object.interfaces)
 			{
-			var appPath = obj[objName.toLowerCase()].publication.identity.name;
+			var appPath = object.publication.identity.name;
 			appPath = appPath.substr(0, appPath.lastIndexOf('/'));
 			appPath = appPath.substr(0, appPath.lastIndexOf('/'));
-			obj[objName.toLowerCase()].interfaces.map(dataset => {
+			object.interfaces.map(dataset => {
 				dataset._path = appPath + '/interfaces/' + dataset.identity.name;
 			});
 			}
@@ -255,11 +262,11 @@ function scanDirectory (dir, metapath) {
 		
 		if (type == "pipelines")
 		{
-			console.log("pipeline", obj[objName.toLowerCase()]._path);
-			console.log(obj[objName.toLowerCase()]);
-			if (obj[objName.toLowerCase()].activities)
+			console.log("pipeline", object._path);
+			console.log(object.activities);
+			if (object.activities)
 			{
-				obj[objName.toLowerCase()].activities.map(activity => {
+				object.activities.map(activity => {
 					console.log("activity", activity);
 					if (activity.inputs) {
 						activity.inputs.map(input => {
@@ -267,7 +274,7 @@ function scanDirectory (dir, metapath) {
 							{
 								var ref = input.component.reference;
 								var fileName = refToFileName(ref);
-								console.log("load from", path.join((flags.repo ? flags.repo : ''), fileName));
+								console.log("load input dataset from", path.join((flags.repo ? flags.repo : ''), fileName));
 								var dataset = require(path.join((flags.repo ? flags.repo : ''), fileName));
 								input._dataset = dataset;
 							}
@@ -279,6 +286,7 @@ function scanDirectory (dir, metapath) {
 							{
 								var ref = output.component.reference;
 								var fileName = refToFileName(ref);
+								console.log("load output dataset from", path.join((flags.repo ? flags.repo : ''), fileName));
 								var dataset = require(path.join((flags.repo ? flags.repo : ''), fileName));
 								output._dataset = dataset;
 							}
@@ -287,12 +295,11 @@ function scanDirectory (dir, metapath) {
 				});
 			}
 		}
+				
 		
-		
-		
-		if (type == "views" && obj[objName.toLowerCase()].definitions)
+		if (type == "views" && object.definitions &&!flags.skipresources)
 		{
-			obj[objName.toLowerCase()].definitions.map(def => {
+			object.definitions.map(def => {
 				if (def.elements)
 				{
 					def.elements.map(element => {
@@ -301,9 +308,9 @@ function scanDirectory (dir, metapath) {
 							var imageUrl = element.image.replace(/[^A-Za-z_0-9-]+/g,'_') + '.png';
 							if (!fs.existsSync(path.join((flags.targetDir ? flags.targetDir : ''), 'resources', imageUrl)))
 							{
-								console.log("Found external resource: " + element.image + " in object " + obj[objName.toLowerCase()]._path);
+								console.log("Found external resource: " + element.image + " in object " + object._path);
 								var imageData = request('GET', element.image.replace('https://bias-metadata-service.difhub.com','https://apdax-metadata-service-dev.azurewebsites.net')).getBody();
-								//fs.writeFileSync(path.join((flags.targetDir ? flags.targetDir : ''), obj[objName.toLowerCase()]._path) + '__' + element.identity.name + '.png');
+								//fs.writeFileSync(path.join((flags.targetDir ? flags.targetDir : ''), object._path) + '__' + element.identity.name + '.png');
 								//var imageUrl = element.image.replace('http://','').replace('https://','').replace('/','_').replace('\\','_').replace('?','_').replace('=','_');
 								
 								console.log("Downloaded, saving to ",imageUrl);
@@ -318,12 +325,14 @@ function scanDirectory (dir, metapath) {
 		
 		if (flags.json)
 		{
-			const filePath = path.join((flags.targetDir ? flags.targetDir : ''), obj[objName.toLowerCase()]._path) + '.json';
+			const filePath = path.join((flags.targetDir ? flags.targetDir : ''), object._path) + '.json';
 			fs.mkdirSync(path.dirname(filePath), { recursive: true });
-			fs.writeFile(filePath, (flags.pretty !== false ? JSON.stringify(obj[objName.toLowerCase()], null, 2) :JSON.stringify(obj[objName.toLowerCase()])), () => {
+			fs.writeFile(filePath, (flags.pretty !== false ? JSON.stringify(object, null, 2) :JSON.stringify(object)), () => {
 				
 			});
 		}
+		
+		obj[objName.toLowerCase()] = object;
     }
 
     if (dirs.length === 0) {
