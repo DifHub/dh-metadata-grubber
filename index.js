@@ -147,7 +147,7 @@ function refToFileName(ref) {
  * @returns {{}}
  */
 function scanDirectory (dir, metapath) {
-    console.log('Graber:DIR', dir, metapath, flags, metadataPathFilter);
+    //console.log('Graber:DIR', dir, metapath, flags, metadataPathFilter);
 
     var dirs = getDirectories(dir).filter(function (dirName) {
         return dirName.charAt(0) !== '.';
@@ -160,7 +160,7 @@ function scanDirectory (dir, metapath) {
         return fileName.indexOf('.json') >= 1;
     });
 
-    console.log('Graber:FILES', dirs, files);
+    //console.log('Graber:FILES', dirs, files);
 
     for (var j = 0; j < files.length; j++) {
         var f = files[j];
