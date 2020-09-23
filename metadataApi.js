@@ -1,15 +1,54 @@
 //const { metadata, findByPath } = require('./example_metadata.js');
-const { metadata_apdax } = require('./metadata_apdax.js');
+//const { metadata_apdax } = require('./metadata_apdax.js');
 
-
-
-
-const defaultLocale = 'en-us';
+const defaultLocale = { "Locale Name": "English - United States", "Locale id": "en-us", "Locale Code": "1033", "Language Code": "en" };
+const defaultLocaleId = 'en-us';
+const defaultLocaleCode = '1033';
 exports.defaultLocale = defaultLocale;
+exports.defaultLocaleId = defaultLocaleId;
+exports.defaultLocaleCode = defaultLocaleCode;
 
-exports.changeLang = function (newLocale) {
-  window.localStorage.locale = newLocale;
+exports.changeLang = function (newLocale, newLocaleId, newLocaleMap) {
+  window.localStorage.localeCode = newLocale;
+  window.localStorage.localeMap = newLocaleMap ? datasetToObjectArray(newLocaleMap) : null;
+  window.localStorage.localeId = newLocaleId;
+  window.localStorage.localeCollator = new Intl.Collator(newLocale, { sensitivity: 'base', numeric: true });
 }
+
+/**
+ * Find locale id by locale code. Use enumerator of locales from organization.
+ * @param {string} localeCode - code of locale w need id for
+ * @returns {string} locale code.
+ */
+exports.localeIdByCode = (localeCode) => {
+  const locales = window.localStorage.localeMap;
+    if (!locales) return null;
+  let ret = locales.find(cur => cur["Locale Code"] === localeCode);
+  return ret["Locale Id"];
+}
+
+/**
+ * Non case sensitive string compare
+ * @param {String} str1
+ * @param {String} str2
+ */
+const strCompare = function (str1, str2) {
+  if (!str1 && !str2) {
+    // This is two empty strings case, we consider it equal
+    return true;
+  } else if (!str1 || !str2) {
+    // We are compare null with string
+    return false;
+  } else if ( !(typeof str1 === 'string') || !(typeof str2 === 'string')) {
+    // One of compares not string
+    console.warn("nonCSCompare one of arguments is not a string", str1, str2);
+    return false;
+  } else {
+    // Let's compare strings
+    return window.localStorage.localeCollator ? window.localStorage.localeCollator.compare(str1, str2) : str1.toLowerCase() === str2.toLowerCase();
+  }
+}
+exports.strCompare = strCompare;
 
 /**
  * Non case sensitive string compare
@@ -25,8 +64,8 @@ const nonCSCompare = function (str1, str2) {
     console.warn("nonCSCompare one of arguments is falsy", str1, str2);
     return false;
   } else if (!str1 || !str2) {
-      // We are compare null with string
-      return false;
+    // We are compare null with string
+    return false;
   } else {
     // Let's compare strings
     return str1.toLowerCase() === str2.toLowerCase();
@@ -195,19 +234,6 @@ exports.datasetToObjectArray = (ds) => {
 
 };
 
-/**
- * Find locale id by locale code. Use enumerator of locales from organization.
- * @param {string} localeCode - code of locale w need id for
- * @returns {string} locale code.
- */
- //*
-exports.localeIdByCode = (localeCode) => 
-{
-	const locales = datasetToObjectArray(metadata_apdax.metadata.apdax.systems.difhub.applications.organization.datasets.locale);
-	let ret = locales.reduce((found, cur) => cur["Locale Code"] === localeCode ? cur["Locale id"] : found, false);
-	return ret;
-}
-// */
 
 /**
  * Return Dataset metadata by path of the dataset
@@ -290,42 +316,110 @@ exports.getFieldMetadata = (dataset, path) => {
 };
 
 /**
- * Return element of the view
+ * Return specified element of the view or all elements of the view for specific locale. 
  * @param {object} view - metadata for view
  * @param {string} element - name of the element
- * @param {string} locale - locale in which return element data. When not specified use view default.
+ * @param {string} locale - locale id in which return element data. When not specified use view default.
  * @returns {object} object - metadata for element of the view
  */
 exports.getElementMetadata = (view, element, locale) => {
   try 
   {
-    if (!view || !element || view.object.type.toLowerCase() !== 'view') return null;
+    if (!view || view.object.type.toLowerCase() !== 'view') return null;
 
-    // Base locale of the view and locale for requested element 
-    let view_locale = (view.locale) ? view.locale : defaultLocale; 
-    let data_locale = (locale) ? locale : window.localStorage.locale || defaultLocale; 
+    // Let's find definision for view local.
+    let base_definision = null;
+    let data_definision = null;
 
-    // Definision of requested locale and base definision
-    let data_definision = view.definitions.find(def => (def.locale === data_locale || data_locale === localeIdByCode(def.locale)));
-    let base_definision = (view_locale === data_locale) ? null :   
-      view.definitions.find(def => (def.locale === view_locale || view_locale === localeIdByCode(def.locale)));
-
-    // Element by name from base and locale definision. 
-    let data_element = (!data_definision) ? null : data_definision.elements.find(elem => nonCSCompare(elem.identity.name, element));
-    let base_element = (!base_definision) ? null : base_definision.elements.find(elem => nonCSCompare(elem.identity.name, element));
-
-    if (!data_element && !base_element) {
-      // We don't find element with provided name.
-      return null;
-    } else if (data_element && !base_element) {
-      // We have element only for requested locale.
-      return data_element;
-    } else if (!data_element && base_element) {
-      // We have element only for view default locale.
-      return base_element;
+    // Find base definision.
+    if (view.local) {
+      // We have locale defined in view we expect we have
+      // base defenision match defined local. 
+      base_definision = view.definitions.find(def => (def.locale === view.local));
     } else {
-      // We have both elements and need to merge it.
-      return deepMerge(base_element, data_element);
+      // We on default locale of the system and will look base on code and id  
+      base_definision = view.definitions.find(def => (def.locale === defaultLocaleId || def.locale === defaultLocaleCode));
+    }
+
+    // Find definision of current locale.
+    if (locale) {
+      if (base_definision.locale !== locale) {
+        // We on default locale of the system and will look base on code and id  
+        data_definision = view.definitions.find(def => (def.locale === locale));
+
+        // Can be competability problem
+        if (!data_definision) {
+          let localeId = localeIdByCode(locale); 
+          if (localeId && base_definision.locale !== localeId) {
+            // We on default locale of the system and will look base on code and id  
+            data_definision = view.definitions.find(def => (def.locale === localeId));
+          }
+        }
+      }
+    } else if (window.localStorage.localeId || window.localStorage.localeCode) {
+      // We use current locale if it not same as base. 
+      if (base_definision.locale !== window.localStorage.localeId && base_definision.locale !== window.localStorage.localeCode ) {
+        // We on default locale of the system and will look base on code and id  
+        data_definision = view.definitions.find(def => (def.locale === window.localStorage.localeId || def.locale === window.localStorage.localeCode));
+      }
+    } else {
+      // We use system locale as our data locale if it not same as base
+      if (base_definision.locale !== defaultLocaleId || base_definision.locale !== defaultLocaleCode) {
+        // We on default locale of the system and will look base on code and id  
+        data_definision = view.definitions.find(def => (def.locale === defaultLocaleId || def.locale === defaultLocaleCode));
+      }
+    }
+
+    // We don't find or we have it same.
+    if (!data_definision || data_definision.locale === base_definision.locale) {
+      data_definision = base_definision;
+      base_definision = null;
+    }
+
+    // When specific element requested
+    if (element) {  
+      // Element by name from base and locale definision. 
+      let data_element = (!data_definision) ? null : data_definision.elements.find(elem => nonCSCompare(elem.identity.name, element));
+      let base_element = (!base_definision) ? null : base_definision.elements.find(elem => nonCSCompare(elem.identity.name, element));
+
+      if (!data_element && !base_definision) {
+        // We don't find element with provided name.
+        return null;
+      } else if (data_element && !base_element) {
+        // We have element only for requested locale.
+        return data_element;
+      } else if (!data_element && base_element) {
+        // We have element only for view default locale.
+        return base_element;
+      } else {
+        // We have both elements and need to merge it.
+        return deepMerge(base_element, data_element);
+      }
+    } else {
+      if (!data_definision && !base_definision) {
+        // We don't find definisions for locale we have.
+        return [];
+      } else if (data_definision && !base_definision) {
+        // We have elements only for requested locale.
+        return data_definision;
+      } else if (!data_definision && base_definision) {
+        // We have elements only for view default locale.
+        return base_definision;
+      } else {
+        // We have both elements and need to merge it.
+        let base_elements = base_definision.elements.map(base_element => {
+          let data_element = data_definision.elements.find(elem => nonCSCompare(elem.identity.name, base_element.identity.name));
+          return data_element ? deepMerge(base_element, data_element) : base_element;
+        });
+
+        // Lets merge with elements, which exist only for requested locale.
+        let data_elements = data_definision.elements.filter(data_element => {
+          let base_element = base_definision.elements.find(elem => nonCSCompare(elem.identity.name, data_element.identity.name));
+          return !base_element;
+        });
+
+        return base_elements.concat(data_elements);
+      }
     }
   }
   catch (e) {
@@ -360,6 +454,22 @@ exports.getElementProperty = (element, name) => {
   return property.value; 
 };
 
+/**
+ * Return value from control of element
+ * @param {object} element - metadata for element
+ * @param {string} path - dot delimeted or slash delimeted path to value in element control
+ * @returns {string} value from element control.
+ */
+exports.getElementValue = (element, path) => {
+  if (!element || !element.control || !element.control.value)
+    return null;
+
+  let value = deepGet(element.control.value, path);
+  if (!value)
+    return null;
+
+  return value;
+};
 
 /**
  * Return array of data records from dataset with data

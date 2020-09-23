@@ -264,7 +264,9 @@ function scanDirectory (dir, metapath) {
 		
 		if (type == "pipelines")
 		{
-			console.log("pipeline", object._path);
+            let p = path.join(process.cwd(), '.mdtmp');
+
+            console.log("pipeline", object._path);
 			console.log(object.activities);
 			if (object.activities)
 			{
@@ -276,8 +278,8 @@ function scanDirectory (dir, metapath) {
 							{
 								var ref = input.component.reference;
 								var fileName = refToFileName(ref);
-								console.log("load input dataset from", path.join((flags.repo ? flags.repo : ''), fileName));
-								var dataset = require(path.join((flags.repo ? flags.repo : ''), fileName));
+                                console.log("Graner:Pipeline:Input", path.join(p, fileName), p, process.cwd());
+								var dataset = require(path.join(p, fileName));
 								input._dataset = dataset;
 							}
 						});
@@ -288,8 +290,8 @@ function scanDirectory (dir, metapath) {
 							{
 								var ref = output.component.reference;
 								var fileName = refToFileName(ref);
-								console.log("load output dataset from", path.join((flags.repo ? flags.repo : ''), fileName));
-								var dataset = require(path.join((flags.repo ? flags.repo : ''), fileName));
+								console.log("load output dataset from", path.join(p, fileName));
+								var dataset = require(path.join(p, fileName));
 								output._dataset = dataset;
 							}
 						});
@@ -382,14 +384,14 @@ const metadataApi = require('./metadataApi.js');
 
 let metadataApiString = "";
 //
-let exportsString = "module.exports = {metadata: metadata, findByPath: findByPath, metadata_apdax:metadata_apdax";
+let exportsString = "module.exports = {metadata: metadata, findByPath: findByPath";
 for (let item in metadataApi)
 {
 	//console.log("item", item, metadataApi[item]);
 	if (typeof(metadataApi[item]) === 'function')
-		metadataApiString += "var " + item + " = " + (metadataApi[item].toString()) + "; ";
+		metadataApiString += "var " + item + " = " + (metadataApi[item].toString()) + "; \n";
 	else
-		metadataApiString += "var " + item + " = " + JSON.stringify(metadataApi[item]) + "; ";
+		metadataApiString += "var " + item + " = " + JSON.stringify(metadataApi[item]) + "; \n";
 	exportsString += ", " + item + ":" + item;
 }
 exportsString += "}; ";
@@ -411,6 +413,7 @@ if (cloneRepo()) {
 		metadataPathFilter = "/organizations/" + flags.includeOrg;
 	}
 
+    console.log("Graber:SCAN", p, flags);
     var obj = scanDirectory(p, '');
 	
 	var outputFilename = path.join((flags.targetDir ? flags.targetDir : ''), 'metadata.js');
@@ -418,8 +421,8 @@ if (cloneRepo()) {
 	if (!flags.json)
 		fs.writeFile(
 			outputFilename,
-			"var metadata_apdax = " + JSON.stringify(metadata_apdax, null, 2) + ";" + 
-			"var metadata = " + (flags.pretty !== false ? JSON.stringify(obj, null, 2) :JSON.stringify(obj)) + ";" +
+//			"var metadata_apdax = " + JSON.stringify(metadata_apdax, null, 2) + ";" + 
+			"var metadata = " + (flags.pretty !== false ? JSON.stringify(obj, null, 2) :JSON.stringify(obj)) + "\n" +
 			findByPath.toString() +
 			metadataApiString + 
 			exportsString,		//"module.exports = {metadata: metadata, findByPath: findByPath};",
