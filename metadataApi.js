@@ -209,29 +209,20 @@ exports.deepMerge = function (b, o) {
 }
 
 exports.datasetToObjectArray = (ds) => {
-
   let sorted = ds.data.records.slice();
   sorted.sort((a,b)=>a.index > b.index ? 1 : (a.index < b.index ? -1 : 0));
 
-  //console.log("datasetToObjectArray s", sorted);
-
   let ret = sorted.map( row => {
-
     let obj = {};
 
-//    console.log("datasetToObjectArray r", row);
-
-    ds.structure.fields.map((field, index) => {
+    ds.structure.fields.forEach((field, index) => {
       obj[field.identity.name] = row.values[index];
     });
-
     return obj;
-
   });
   //console.log("datasetToObjectArray", ds, ret);
 
   return ret;
-
 };
 
 
@@ -298,7 +289,8 @@ exports.getFieldMetadata = (dataset, path) => {
 
     // Iterate path and find field we looking for.
     for (var i = 0; i < elements.length; i++) {
-      let field = ds.structure.fields.find(f => nonCSCompare(f.identity.name, elements[i]));
+      let element = elements[i];
+      let field = ds.structure.fields.find(f => nonCSCompare(f.identity.name, element));
       if (i + 1 === elements.length ) {
         return field;
       } else if (!field || field.type.toLowerCase() !== 'structure') {
@@ -492,8 +484,8 @@ exports.getDatasetData = (dataset, locale, usage) => {
     if (locale) { 
       let indexTranslations = dataset.structure.fields.findIndex((field) => nonCSCompare(field.identity.name, 'translations') || nonCSCompare(field.usage, 'translations')); 
       let translation = (indexTranslations < 0 || !row.values[indexTranslations]) ? null : JSON.parse(row.values[indexTranslations]).find((tr) => nonCSCompare(locale, tr.Locale)); 
-      dataset.structure.fields.map((field, index) => {
-        if (index != indexTranslations) {
+      dataset.structure.fields.forEach((field, index) => {
+        if (index !== indexTranslations) {
           if (usage) {
             if (!obj[field.identity.name] && !nonCSCompare(field.usage, 'translations')) obj[field.usage] = translation && translation[field.usage] ? translation[field.usage] : row.values[index];
           } else {
@@ -502,7 +494,7 @@ exports.getDatasetData = (dataset, locale, usage) => {
         }
       });
     } else {
-      dataset.structure.fields.map((field, index) => {
+      dataset.structure.fields.forEach((field, index) => {
         if (usage) {
           if (!obj[field.identity.name] && !nonCSCompare(field.usage, 'translations')) obj[field.usage] = row.values[index];
         } else {
@@ -529,15 +521,3 @@ exports.getEnumOptions = (field, locale) => {
     
   return getDatasetData(dataset, locale, true);
 };
-
-
-
-
-
-
-
-
-
-
-
-
