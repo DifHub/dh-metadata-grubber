@@ -9,7 +9,7 @@ exports.defaultLocaleId = defaultLocaleId;
 exports.defaultLocaleCode = defaultLocaleCode;
 
 let localeMap = null;
-let localeCollator = new Intl.Collator(defaultLocaleId, { sensitivity: 'base', numeric: true });
+let localeCollator = null;
 exports.localeMap = localeMap;
 exports.localeCollator = localeCollator;
 
