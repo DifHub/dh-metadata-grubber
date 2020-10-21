@@ -8,24 +8,50 @@ exports.defaultLocale = defaultLocale;
 exports.defaultLocaleId = defaultLocaleId;
 exports.defaultLocaleCode = defaultLocaleCode;
 
-exports.changeLang = function (newLocale, newLocaleId, newLocaleMap) {
-  window.localStorage.localeCode = newLocale;
-  window.localStorage.localeMap = newLocaleMap ? datasetToObjectArray(newLocaleMap) : null;
-  window.localStorage.localeId = newLocaleId;
-  window.localStorage.localeCollator = new Intl.Collator(newLocale, { sensitivity: 'base', numeric: true });
-}
+let localeMap = null;
+let localeCollator = new Intl.Collator(defaultLocaleId, { sensitivity: 'base', numeric: true });
 
 /**
- * Find locale id by locale code. Use enumerator of locales from organization.
- * @param {string} localeCode - code of locale w need id for
- * @returns {string} locale code.
+ * Change language and/or locale map dataset.
+ * @param {string} newLocale - code or id of locale we want to be current
+ * @param {object} newLocaleMap - dataset of locale enum with mapping of locales and languages
+ * @returns {string} current locale id (en-us by defaule).
  */
-exports.localeIdByCode = (localeCode) => {
-  const locales = window.localStorage.localeMap;
-    if (!locales) return null;
-  let ret = locales.find(cur => cur["Locale Code"] === localeCode);
-  return ret["Locale Id"];
-}
+const changeLang = function (newLocale, newLocaleMap) {
+  if (newLocaleMap) {
+    localeMap = datasetToObjectArray(newLocaleMap);
+  }
+
+  if (newLocale) {
+    let locale = findLocale(newLocale);
+    if (locale) {
+      window.localStorage.localeCode = locale["Locale Code"];
+      window.localStorage.localeId = locale["Locale id"];
+      //console.log('Metadata:changeLang', locale);
+
+      localeCollator = new Intl.Collator(window.localStorage.localeId, { sensitivity: 'base', numeric: true });
+    }
+  }
+  return window.localStorage.localeCode;
+};
+exports.changeLang = changeLang;
+
+/**
+ * Find locale by locale id or code. Use enumerator of locales from organization.
+ * @param {string} locale - code or id of locale we are looking for
+ * @returns {object} locale object with name, id, code amd language.
+ */
+const findLocale = (locale) => {
+  if (!localeMap) return null;
+
+  let localeCode = locale.toString().toLowerCase();
+  let localeData = localeMap.find(cur => cur["Locale Code"] === localeCode);
+  if (!localeData) {
+    localeData = localeMap.find(cur => cur["Locale id"] === localeCode);
+  }
+  return localeData;
+}; 
+exports.findLocale = findLocale;
 
 /**
  * Non case sensitive string compare
@@ -45,7 +71,7 @@ const strCompare = function (str1, str2) {
     return false;
   } else {
     // Let's compare strings
-    return window.localStorage.localeCollator ? window.localStorage.localeCollator.compare(str1, str2) : str1.toLowerCase() === str2.toLowerCase();
+    return localeCollator ? localeCollator.compare(str1, str2) : str1.toLowerCase() === str2.toLowerCase();
   }
 }
 exports.strCompare = strCompare;
@@ -323,43 +349,47 @@ exports.getElementMetadata = (view, element, locale) => {
     let base_definision = null;
     let data_definision = null;
 
+    // We on default locale of the system and will look base on code and id  
+    let baseLocaleCode = defaultLocaleCode;
+    let baseLocaleId = defaultLocaleId;
+
     // Find base definision.
     if (view.local) {
       // We have locale defined in view we expect we have
-      // base defenision match defined local. 
-      base_definision = view.definitions.find(def => (def.locale === view.local));
-    } else {
-      // We on default locale of the system and will look base on code and id  
-      base_definision = view.definitions.find(def => (def.locale === defaultLocaleId || def.locale === defaultLocaleCode));
-    }
+      // base defenision match defined local.
+      let viewLocale = findLocale(view.local);
+      if (viewLocale) {
+        baseLocaleCode = viewLocale["Locale Code"];
+        baseLocaleId = viewLocale["Locale id"];
+      } 
+    } 
 
-    // Find definision of current locale.
+    base_definision = view.definitions.find(def => (def.locale.toString().toLowerCase() === baseLocaleId || def.locale.toString() === baseLocaleCode));
+
+    // We on default locale of the system and will look base on code and id  
+    let dataLocaleCode = defaultLocaleCode;
+    let dataLocaleId = defaultLocaleId;
+
+    // Find data definision.
     if (locale) {
-      if (base_definision.locale !== locale) {
-        // We on default locale of the system and will look base on code and id  
-        data_definision = view.definitions.find(def => (def.locale === locale));
-
-        // Can be competability problem
-        if (!data_definision) {
-          let localeId = localeIdByCode(locale); 
-          if (localeId && base_definision.locale !== localeId) {
-            // We on default locale of the system and will look base on code and id  
-            data_definision = view.definitions.find(def => (def.locale === localeId));
-          }
-        }
+      // We have locale defined in call we expect we have
+      // datq defenision match defined local.
+      if (locale.toString().toLowerCase() !== baseLocaleId && locale.toString() === baseLocaleCode) {
+        let dataLocale = findLocale(locale);
+        if (dataLocale) {
+          dataLocaleCode = dataLocale["Locale Code"];
+          dataLocaleId = dataLocale["Locale id"];
+        } 
       }
     } else if (window.localStorage.localeId || window.localStorage.localeCode) {
       // We use current locale if it not same as base. 
-      if (base_definision.locale !== window.localStorage.localeId && base_definision.locale !== window.localStorage.localeCode ) {
-        // We on default locale of the system and will look base on code and id  
-        data_definision = view.definitions.find(def => (def.locale === window.localStorage.localeId || def.locale === window.localStorage.localeCode));
-      }
-    } else {
-      // We use system locale as our data locale if it not same as base
-      if (base_definision.locale !== defaultLocaleId || base_definision.locale !== defaultLocaleCode) {
-        // We on default locale of the system and will look base on code and id  
-        data_definision = view.definitions.find(def => (def.locale === defaultLocaleId || def.locale === defaultLocaleCode));
-      }
+      dataLocaleCode = window.localStorage.localeCode;
+      dataLocaleId = window.localStorage.localeId;
+    } 
+    
+    if (dataLocaleId !== baseLocaleId || dataLocaleCode !== baseLocaleCode) {
+      // We on default locale of the system and will look base on code and id  
+      data_definision = view.definitions.find(def => (def.locale.toString().toLowerCase() === dataLocaleId || def.locale.toString() === dataLocaleCode));
     }
 
     // We don't find or we have it same.
@@ -393,10 +423,10 @@ exports.getElementMetadata = (view, element, locale) => {
         return [];
       } else if (data_definision && !base_definision) {
         // We have elements only for requested locale.
-        return data_definision;
+        return data_definision.elements;
       } else if (!data_definision && base_definision) {
         // We have elements only for view default locale.
-        return base_definision;
+        return base_definision.elements;
       } else {
         // We have both elements and need to merge it.
         let base_elements = base_definision.elements.map(base_element => {
@@ -473,7 +503,7 @@ exports.getElementValue = (element, path) => {
 exports.getDatasetData = (dataset, locale, usage) => {
   if (!dataset) return [];
   if (!locale) {
-    locale = typeof(window) !== "undefined" && window.localStorage && window.localStorage.locale ? window.localStorage.locale : defaultLocale;  
+    locale = typeof(window) !== "undefined" && window.localStorage && window.localStorage.localeId ? window.localStorage.localeId : defaultLocaleId;  
   }
 
   let sorted = dataset.data.records.slice();
