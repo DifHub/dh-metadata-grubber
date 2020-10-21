@@ -34,6 +34,10 @@ const changeLang = function (newLocale, newLocaleMap) {
       localeCollator = new Intl.Collator(window.localStorage.localeId, { sensitivity: 'base', numeric: true });
     }
   }
+
+  if (!localeCollator && window.localStorage.localeId) {
+    localeCollator = new Intl.Collator(window.localStorage.localeId, { sensitivity: 'base', numeric: true });
+  }
   return window.localStorage.localeCode;
 };
 exports.changeLang = changeLang;
