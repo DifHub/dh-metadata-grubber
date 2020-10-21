@@ -10,6 +10,8 @@ exports.defaultLocaleCode = defaultLocaleCode;
 
 let localeMap = null;
 let localeCollator = new Intl.Collator(defaultLocaleId, { sensitivity: 'base', numeric: true });
+exports.localeMap = localeMap;
+exports.localeCollator = localeCollator;
 
 /**
  * Change language and/or locale map dataset.
